@@ -2946,13 +2946,12 @@ void smt1_convt::convert_type(const typet &type)
 
     out << "BitVec[" << width << "]";
   }
-  else if(type.id()==ID_pointer ||
-          type.id()==ID_reference)
+  else if(type.id()==ID_pointer)
   {
     std::size_t width=boolbv_width(type);
 
     if(width==0)
-      throw "failed to get width of pointer/reference";
+      throw "failed to get width of pointer";
 
     out << "BitVec[" << width << "]";
   }

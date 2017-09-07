@@ -112,9 +112,12 @@ exprt pointer_logict::pointer_expr(
   exprt result;
 
   if(type.id()==ID_pointer)
-    result=exprt(ID_address_of, type);
-  else if(type.id()==ID_reference)
-    result=exprt("reference_to", type);
+  {
+    if(type.get_bool(ID_C_reference))
+      result=exprt("reference_to", type);
+    else
+      result=exprt(ID_address_of, type);
+  }
   else
     assert(0);
 

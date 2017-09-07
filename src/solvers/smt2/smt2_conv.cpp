@@ -4167,8 +4167,7 @@ void smt2_convt::find_symbols(const exprt &expr)
   {
     const exprt &op = expr.op0();
 
-    if(op.type().id()==ID_pointer ||
-       op.type().id()==ID_reference)
+    if(op.type().id()==ID_pointer)
     {
       if(object_sizes.find(expr)==object_sizes.end())
       {
@@ -4344,8 +4343,7 @@ void smt2_convt::convert_type(const typet &type)
 
     out << "(_ BitVec " << width << ")";
   }
-  else if(type.id()==ID_pointer ||
-          type.id()==ID_reference)
+  else if(type.id()==ID_pointer)
   {
     out << "(_ BitVec "
         << boolbv_width(type) << ")";

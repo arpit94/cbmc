@@ -1116,8 +1116,7 @@ void dplib_convt::convert_dplib_type(const typet &type)
 
     dplib_prop.out << " #]";
   }
-  else if(type.id()==ID_pointer ||
-          type.id()==ID_reference)
+  else if(type.id()==ID_pointer)
   {
     dplib_prop.out << dplib_pointer_type();
   }
