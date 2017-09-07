@@ -12,56 +12,33 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <cctype>
 
 #include <util/arith_tools.h>
+#include <util/c_types.h>
 #include <util/std_types.h>
 #include <util/std_expr.h>
-#include <util/config.h>
 #include <util/find_symbols.h>
 #include <util/pointer_offset_size.h>
 #include <util/string2int.h>
 
 #include <ansi-c/string_constant.h>
 
-std::string dplib_convt::bin_zero(unsigned bits)
-{
-  assert(bits!=0);
-  std::string result="0bin";
-  while(bits!=0) { result+='0'; bits--; }
-  return result;
-}
-
 std::string dplib_convt::dplib_pointer_type()
 {
-  assert(config.ansi_c.pointer_width!=0);
-  return "[# object: INT, offset: BITVECTOR("+
-         std::to_string(config.ansi_c.pointer_width)+") #]";
-}
-
-std::string dplib_convt::array_index_type()
-{
-  return std::string("SIGNED [")+std::to_string(32)+"]";
-}
-
-typet dplib_convt::gen_array_index_type()
-{
-  typet t(ID_signedbv);
-  t.set(ID_width, 32);
-  return t;
-}
-
-std::string dplib_convt::array_index(unsigned i)
-{
-  return "0bin"+integer2binary(i, config.ansi_c.int_width);
+  return
+    "[# object: INT, offset: BITVECTOR("+
+    std::to_string(
+      integer2size_t(
+        pointer_offset_bits(pointer_type(void_type()), ns)))+") #]";
 }
 
 void dplib_convt::convert_array_index(const exprt &expr)
 {
-  if(expr.type()==gen_array_index_type())
+  if(expr.type()==index_type())
   {
     convert_dplib_expr(expr);
   }
   else
   {
-    exprt tmp(ID_typecast, gen_array_index_type());
+    exprt tmp(ID_typecast, index_type());
     tmp.copy_to_operands(expr);
     convert_dplib_expr(tmp);
   }
@@ -76,8 +53,9 @@ void dplib_convt::convert_address_of_rec(const exprt &expr)
     dplib_prop.out
       << "(# object:="
       << pointer_logic.add_object(expr)
-      << ", offset:="
-      << bin_zero(config.ansi_c.pointer_width) << " #)";
+      << ", offset:=";
+    convert_expr(from_integer(0, size_type()));
+    dplib_prop.out << " #)";
   }
   else if(expr.id()==ID_index)
   {
@@ -110,7 +88,7 @@ void dplib_convt::convert_address_of_rec(const exprt &expr)
         assert(false);
 
       dplib_prop.out << " IN P WITH .offset:=BVPLUS("
-                   << config.ansi_c.pointer_width
+                   << pointer_offset_bits(pointer_type(void_type()), ns)
                    << ", P.offset, ";
       convert_dplib_expr(index);
       dplib_prop.out << "))";
@@ -136,13 +114,10 @@ void dplib_convt::convert_address_of_rec(const exprt &expr)
       to_struct_type(struct_op.type()), component_name);
     assert(offset>=0);
 
-    typet index_type(ID_unsignedbv);
-    index_type.set(ID_width, config.ansi_c.pointer_width);
-
-    exprt index=from_integer(offset, index_type);
+    exprt index=from_integer(offset, size_type());
 
     dplib_prop.out << " IN P WITH .offset:=BVPLUS("
-                 << config.ansi_c.pointer_width
+                 << pointer_offset_bits(pointer_type(void_type()), ns)
                  << ", P.offset, ";
     convert_dplib_expr(index);
     dplib_prop.out << "))";
@@ -395,8 +370,9 @@ void dplib_convt::convert_dplib_expr(const exprt &expr)
       {
         dplib_prop.out << "(# object:="
                      << pointer_logic.get_null_object()
-                     << ", offset:="
-                     << bin_zero(config.ansi_c.pointer_width) << " #)";
+                     << ", offset:=";
+        convert_expr(from_integer(0, size_type()));
+        dplib_prop.out << " #)";
       }
       else
         throw "unknown pointer constant: "+id2string(value);
@@ -412,7 +388,9 @@ void dplib_convt::convert_dplib_expr(const exprt &expr)
     }
     else if(expr.type().id()==ID_array)
     {
-      dplib_prop.out << "ARRAY (i: " << array_index_type() << "):";
+      dplib_prop.out << "ARRAY (i: ";
+      convert_type(index_type();
+      dplib_prop.out << "):";
 
       assert(!expr.operands().empty());
 
@@ -691,7 +669,7 @@ void dplib_convt::convert_dplib_expr(const exprt &expr)
         dplib_prop.out << "(LET P: " << dplib_pointer_type() << " = ";
         convert_dplib_expr(*p);
         dplib_prop.out << " IN P WITH .offset:=BVPLUS("
-                     << config.ansi_c.pointer_width
+                     << pointer_offset_bits(pointer_type(void_type()), ns)
                      << ", P.offset, ";
         convert_dplib_expr(*i);
         dplib_prop.out << "))";
@@ -805,7 +783,9 @@ void dplib_convt::convert_dplib_expr(const exprt &expr)
   {
     assert(expr.type().id()==ID_array);
     assert(expr.operands().size()==1);
-    dplib_prop.out << "(ARRAY (i: " << array_index_type() << "): ";
+    dplib_prop.out << "(ARRAY (i: ";
+    convert_type(index_type());
+    dplib_prop.out << "): ";
     convert_array_value(expr.op0());
     dplib_prop.out << ")";
   }
@@ -1079,8 +1059,9 @@ void dplib_convt::convert_dplib_type(const typet &type)
   {
     const array_typet &array_type=to_array_type(type);
 
-    dplib_prop.out << "ARRAY " << array_index_type()
-                 << " OF ";
+    dplib_prop.out << "ARRAY ";
+    convert_type(index_type());
+    dplib_prop.out << " OF ";
 
     if(array_type.subtype().id()==ID_bool)
       dplib_prop.out << "BITVECTOR(1)";

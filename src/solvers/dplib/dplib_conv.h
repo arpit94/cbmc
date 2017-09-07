@@ -46,11 +46,7 @@ private:
   void convert_array_value(const exprt &expr);
   void convert_as_bv(const exprt &expr);
   void convert_array_index(const exprt &expr);
-  static typet gen_array_index_type();
-  static std::string bin_zero(unsigned bits);
-  static std::string array_index_type();
-  static std::string array_index(unsigned i);
-  static std::string dplib_pointer_type();
+  std::string dplib_pointer_type() const;
 
   struct identifiert
   {
