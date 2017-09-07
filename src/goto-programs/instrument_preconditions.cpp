@@ -29,6 +29,10 @@ std::vector<goto_programt::const_targett> get_preconditions(
       i_it!=body.instructions.end();
       i_it++)
   {
+    if(i_it->is_location() ||
+       i_it->is_skip())
+      continue; // ignore
+
     if(i_it->is_assert() &&
        i_it->source_location.get_property_class()==ID_precondition)
       result.push_back(i_it);
@@ -37,6 +41,22 @@ std::vector<goto_programt::const_targett> get_preconditions(
   }
   
   return result;
+}
+
+void remove_preconditions(goto_programt &goto_program)
+{
+  for(auto &instruction : goto_program.instructions)
+  {
+    if(instruction.is_location() ||
+       instruction.is_skip())
+      continue; // ignore
+
+    if(instruction.is_assert() &&
+       instruction.source_location.get_property_class()==ID_precondition)
+      instruction.type=LOCATION;
+    else
+      break; // preconditions must be at the front
+  }
 }
 
 void instrument_preconditions(
@@ -65,11 +85,12 @@ void instrument_preconditions(
         for(const auto &p : preconditions)
         {
           goto_program.insert_before_swap(it);
-          it->code=p->code;
+          it->make_assertion(p->guard);
           it->function=function;
           it->source_location=source_location;
           it->source_location.set_property_class(ID_precondition_instance);
           it->source_location.set_comment(p->source_location.get_comment());
+          it++;
         }
       }
     }
@@ -83,4 +104,8 @@ void instrument_preconditions(goto_modelt &goto_model)
     instrument_preconditions(
       goto_model.goto_functions,
       f_it.second.body);
+
+  // now remove the preconditions
+  for(auto &f_it : goto_model.goto_functions.function_map)
+    remove_preconditions(f_it.second.body);
 }
