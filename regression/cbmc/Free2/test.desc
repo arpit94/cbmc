@@ -1,8 +1,9 @@
 CORE
 main.c
---pointer-check
+
 ^EXIT=10$
 ^SIGNAL=0$
+^.*free argument must be dynamic object: FAILURE$
 ^VERIFICATION FAILED$
 --
 ^warning: ignoring
